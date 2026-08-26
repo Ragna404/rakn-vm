@@ -1,0 +1,11 @@
+{
+  "name": "omarchy-vm",
+  "version": "1.0.0",
+  "description": "GCP VM Control App with Omarchy-inspired design",
+  "scripts": {
+    "dev": "cd server && node server.js",
+    "install:server": "cd server && npm install"
+  },
+  "keywords": ["gcp", "vm", "compute-engine", "omarchy"],
+  "license": "MIT"
+}

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="OMARCHY VM - GCP Virtual Machine Control Panel with Omarchy-inspired design">
+  <title>OMARCHY VM</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- ===== LOGIN SCREEN ===== -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-container">
+      <div class="login-ascii">
+ ___  __  __   _   ___  ___ _  ___   __
+/ _ \|  \/  | /_\ | _ \/ __| || \ \ / /
+| (_) | |\/| |/ _ \|   / (__| __ |\ V /
+\___/|_|  |_/_/ \_\_|_\\___|_||_| \_/
+      </div>
+      <h1 class="login-title">OMARCHY <span class="accent-cyan">VM</span></h1>
+      <p class="login-subtitle">GCP Virtual Machine Control</p>
+      <div class="login-divider"></div>
+      <div class="login-fields">
+        <label class="field-label" for="login-client-id">OAuth Client ID</label>
+        <input type="text" id="login-client-id" class="field-input" placeholder="your-client-id.apps.googleusercontent.com" spellcheck="false">
+        <p class="field-hint">Create one at <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></p>
+      </div>
+      <button id="btn-google-login" class="btn-login" disabled>
+        <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <p class="login-footer">Requires Compute Engine API access</p>
+    </div>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <div id="app" class="app hidden">
+    <!-- Top Bar -->
+    <header id="top-bar" class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-menu" class="top-bar-btn" title="Menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span class="top-bar-title">OMARCHY <span class="accent-cyan">VM</span></span>
+      </div>
+      <div class="top-bar-center">
+        <span id="top-bar-instance" class="top-bar-instance">--</span>
+      </div>
+      <div class="top-bar-right">
+        <span id="top-bar-clock" class="top-bar-clock"></span>
+        <div id="top-bar-status-dot" class="status-dot stopped" title="VM Status"></div>
+        <button id="btn-settings" class="top-bar-btn" title="Settings (Ctrl+,)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        </button>
+        <div id="user-info" class="user-info">
+          <span id="user-name" class="user-name"></span>
+          <button id="btn-logout" class="top-bar-btn" title="Logout">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Settings Panel (slide-down overlay) -->
+    <div id="settings-panel" class="settings-panel hidden">
+      <div class="settings-content">
+        <h2 class="settings-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Configuration
+        </h2>
+        <div class="settings-grid">
+          <div class="settings-field">
+            <label class="field-label" for="setting-project">Project ID</label>
+            <input type="text" id="setting-project" class="field-input" placeholder="my-gcp-project" spellcheck="false">
+          </div>
+          <div class="settings-field">
+            <label class="field-label" for="setting-zone">Zone</label>
+            <input type="text" id="setting-zone" class="field-input" placeholder="us-central1-a" spellcheck="false">
+          </div>
+          <div class="settings-field">
+            <label class="field-label" for="setting-instance">Instance Name</label>
+            <input type="text" id="setting-instance" class="field-input" placeholder="my-vm-instance" spellcheck="false">
+          </div>
+          <div class="settings-field">
+            <label class="field-label" for="setting-poll">Poll Interval (seconds)</label>
+            <input type="number" id="setting-poll" class="field-input" value="5" min="2" max="60">
+          </div>
+        </div>
+        <div class="settings-actions">
+          <button id="btn-save-settings" class="btn-primary">Save & Apply</button>
+          <button id="btn-close-settings" class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content (Tiled Layout) -->
+    <main id="main-content" class="main-content">
+      <!-- Left Panel: VM Control -->
+      <section id="panel-control" class="panel panel-control">
+        <div class="panel-header">
+          <span class="panel-title">vm-control</span>
+          <span class="panel-badge" id="vm-status-badge">OFFLINE</span>
+        </div>
+        <div class="panel-body control-body">
+          <!-- Instance Name -->
+          <h2 id="vm-name" class="vm-name">--</h2>
+
+          <!-- Power Toggle -->
+          <div class="power-section">
+            <button id="btn-power" class="power-button" disabled title="Start/Stop VM (Ctrl+S)">
+              <svg class="power-icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="2" x2="12" y2="12"/>
+                <path d="M16.24 7.76a6 6 0 11-8.49-.01"/>
+              </svg>
+            </button>
+            <span id="power-label" class="power-label">OFFLINE</span>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="quick-actions">
+            <button id="btn-reset" class="btn-action" disabled title="Reset VM">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+              Reset
+            </button>
+            <button id="btn-suspend" class="btn-action" disabled title="Suspend VM">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              Suspend
+            </button>
+            <button id="btn-refresh" class="btn-action" title="Refresh (Ctrl+R)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+              Refresh
+            </button>
+          </div>
+
+          <!-- VM Details -->
+          <div id="vm-details" class="vm-details">
+            <div class="detail-row">
+              <span class="detail-label">PROJECT:</span>
+              <span class="detail-value" id="detail-project">--</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">ZONE:</span>
+              <span class="detail-value" id="detail-zone">--</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">MACHINE:</span>
+              <span class="detail-value" id="detail-machine">--</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">INT IP:</span>
+              <span class="detail-value" id="detail-internal-ip">--</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">EXT IP:</span>
+              <span class="detail-value" id="detail-external-ip">--</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">CPU:</span>
+              <span class="detail-value" id="detail-cpu">--</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">STARTED:</span>
+              <span class="detail-value" id="detail-started">--</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Center Panel: Activity Log -->
+      <section id="panel-logs" class="panel panel-logs">
+        <div class="panel-header">
+          <span class="panel-title">activity-log</span>
+          <button id="btn-clear-log" class="panel-btn" title="Clear log">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
+        </div>
+        <div class="panel-body log-body" id="log-container">
+          <div class="log-welcome">
+            <span class="log-line"><span class="log-time">[--:--:--]</span> <span class="log-msg accent-cyan">OMARCHY VM initialized</span></span>
+            <span class="log-line"><span class="log-time">[--:--:--]</span> <span class="log-msg">Configure settings to connect...</span></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Serial Port / Disks -->
+      <section id="panel-serial" class="panel panel-serial">
+        <div class="panel-header">
+          <div class="panel-tabs">
+            <button class="panel-tab active" data-tab="serial">serial-output</button>
+            <button class="panel-tab" data-tab="disks">disks</button>
+            <button class="panel-tab" data-tab="network">network</button>
+          </div>
+          <button id="btn-refresh-serial" class="panel-btn" title="Refresh">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
+        <div class="panel-body serial-body">
+          <!-- Serial Output Tab -->
+          <div id="tab-serial" class="tab-content active">
+            <pre id="serial-output" class="serial-output">Waiting for connection...</pre>
+          </div>
+          <!-- Disks Tab -->
+          <div id="tab-disks" class="tab-content">
+            <div id="disks-list" class="info-list">
+              <p class="info-empty">No disk data available</p>
+            </div>
+          </div>
+          <!-- Network Tab -->
+          <div id="tab-network" class="tab-content">
+            <div id="network-list" class="info-list">
+              <p class="info-empty">No network data available</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Status Bar -->
+    <footer id="bottom-bar" class="bottom-bar">
+      <div class="bottom-bar-left">
+        <span id="connection-status" class="connection-indicator">
+          <span class="conn-dot"></span>
+          DISCONNECTED
+        </span>
+      </div>
+      <div class="bottom-bar-right">
+        <span class="bottom-item" id="poll-indicator">Poll: 5s</span>
+        <span class="bottom-item" id="last-update">Last: --</span>
+        <span class="bottom-item shortcuts-hint">Ctrl+S power | Ctrl+R refresh | Ctrl+, settings</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
