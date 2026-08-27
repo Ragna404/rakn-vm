@@ -662,22 +662,38 @@
          MODAL 2: SELECTOR DE TEMPORIZADOR AUTO-STOP
          ============================================== -->
     <div id="modal-timer" class="modal-backdrop hidden">
-      <div class="modal-dialog">
+      <div class="modal-dialog timer-modal-dialog">
         <div class="modal-header">
           <div class="modal-icon-badge info">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
           <h3 class="modal-title">Temporizador de Auto-Apagado</h3>
         </div>
-        <p class="modal-message">Programa la detención automática de la VM para ahorrar costos en GCP:</p>
+        <p class="modal-message">Programa la detención automática de la VM según tu jornada para ahorrar costos en GCP:</p>
+
+        <!-- Presets Grid -->
+        <div class="timer-section-label">PREAJUSTES DE JORNADA</div>
         <div class="timer-options-grid">
           <button class="btn-timer-opt" data-minutes="0">Desactivado</button>
-          <button class="btn-timer-opt" data-minutes="15">15 Minutos</button>
-          <button class="btn-timer-opt" data-minutes="30">30 Minutos</button>
-          <button class="btn-timer-opt" data-minutes="60">1 Hora</button>
           <button class="btn-timer-opt" data-minutes="120">2 Horas</button>
           <button class="btn-timer-opt" data-minutes="240">4 Horas</button>
+          <button class="btn-timer-opt" data-minutes="360">6 Horas</button>
+          <button class="btn-timer-opt highlight-job" data-minutes="480">8 Horas (Jornada)</button>
+          <button class="btn-timer-opt" data-minutes="720">12 Horas</button>
+          <button class="btn-timer-opt" data-minutes="960">16 Horas</button>
         </div>
+
+        <!-- Custom Duration Form -->
+        <div class="timer-section-label">DURACIÓN PERSONALIZADA</div>
+        <div class="timer-custom-row">
+          <input type="number" id="timer-custom-val" class="form-input timer-custom-input" min="1" max="720" value="8" placeholder="Valor">
+          <select id="timer-custom-unit" class="form-input timer-custom-select">
+            <option value="hours" selected>Horas</option>
+            <option value="minutes">Minutos</option>
+          </select>
+          <button id="btn-timer-set-custom" class="btn btn-primary btn-timer-set">Aplicar</button>
+        </div>
+
         <div class="modal-footer">
           <button id="btn-timer-close" class="btn-secondary">Cerrar</button>
         </div>

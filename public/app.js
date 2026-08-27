@@ -254,6 +254,9 @@
 
     modalTimer: $('#modal-timer'),
     btnTimerClose: $('#btn-timer-close'),
+    timerCustomVal: $('#timer-custom-val'),
+    timerCustomUnit: $('#timer-custom-unit'),
+    btnTimerSetCustom: $('#btn-timer-set-custom'),
 
     modalConfirm: $('#modal-confirm'),
     modalTitle: $('#modal-title'),
@@ -1150,7 +1153,7 @@
 
 
   // ===========================
-  // AUTO-STOP TIMER
+  // AUTO-STOP TIMER (WORKDAY & CUSTOM)
   // ===========================
   function initAutoStopTimer() {
     dom.btnAutoStopTimer.addEventListener('click', () => {
@@ -1161,6 +1164,7 @@
       dom.modalTimer.classList.add('hidden');
     });
 
+    // Preset Buttons (2h, 4h, 6h, 8h, 12h, 16h, Off)
     $$('.btn-timer-opt').forEach((btn) => {
       btn.addEventListener('click', () => {
         const mins = parseInt(btn.dataset.minutes, 10);
@@ -1168,6 +1172,29 @@
         setTimer(mins);
       });
     });
+
+    // Custom Duration Button
+    dom.btnTimerSetCustom.addEventListener('click', () => {
+      const val = parseFloat(dom.timerCustomVal.value) || 0;
+      const unit = dom.timerCustomUnit.value;
+      if (val <= 0) return;
+
+      const mins = unit === 'hours' ? Math.round(val * 60) : Math.round(val);
+      dom.modalTimer.classList.add('hidden');
+      setTimer(mins);
+    });
+  }
+
+  function formatTimerLabel(seconds) {
+    if (seconds <= 0) return 'Auto-Off: Off';
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hrs > 0) {
+      return `Auto-Off: ${hrs}h ${String(mins).padStart(2, '0')}m`;
+    }
+    return `Auto-Off: ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }
 
   function setTimer(minutes) {
@@ -1184,14 +1211,16 @@
     }
 
     state.autoStopSecondsLeft = minutes * 60;
-    log(`Temporizador de auto-apagado activado: ${minutes} minutos`, 'warning');
+    const humanTime = minutes >= 60
+      ? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ''}`
+      : `${minutes} minutos`;
+
+    log(`Temporizador de auto-apagado activado: ${humanTime}`, 'warning');
+    dom.autoStopTimerLabel.textContent = formatTimerLabel(state.autoStopSecondsLeft);
 
     state.autoStopInterval = setInterval(() => {
       state.autoStopSecondsLeft -= 1;
-
-      const m = Math.floor(state.autoStopSecondsLeft / 60);
-      const s = state.autoStopSecondsLeft % 60;
-      dom.autoStopTimerLabel.textContent = `Auto-Off: ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      dom.autoStopTimerLabel.textContent = formatTimerLabel(state.autoStopSecondsLeft);
 
       if (state.autoStopSecondsLeft <= 0) {
         clearInterval(state.autoStopInterval);
