@@ -2,10 +2,58 @@
   "name": "omarchy-vm",
   "version": "1.0.0",
   "description": "GCP VM Control App with Omarchy-inspired design",
+  "main": "electron/main.js",
   "scripts": {
-    "dev": "cd server && node server.js",
-    "install:server": "cd server && npm install"
+    "start": "electron .",
+    "app:dev": "electron .",
+    "app:build:win": "electron-builder --win",
+    "app:build:dir": "electron-builder --win --dir",
+    "dev": "node server/server.js",
+    "server:dev": "node server/server.js",
+    "test": "cd server && pnpm test"
   },
-  "keywords": ["gcp", "vm", "compute-engine", "omarchy"],
-  "license": "MIT"
+  "keywords": [
+    "gcp",
+    "vm",
+    "compute-engine",
+    "omarchy",
+    "electron"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.omarchy.vm",
+    "productName": "OMARCHY VM",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "public/**/*",
+      "server/src/**/*",
+      "server/server.js",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
 }

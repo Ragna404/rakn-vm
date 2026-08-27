@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="OMARCHY VM - GCP Virtual Machine Control Panel with Omarchy-inspired design">
-  <title>OMARCHY VM</title>
+  <meta name="description" content="OMARCHY VM - Entorno de Escritorio y Control de Máquina Virtual GCP">
+  <title>OMARCHY VM - Desktop Environment</title>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -23,16 +23,16 @@
       <div class="login-ascii">
  ___  __  __   _   ___  ___ _  ___   __
 / _ \|  \/  | /_\ | _ \/ __| || \ \ / /
-| (_) | |\/| |/ _ \|   / (__| __ |\ V /
-\___/|_|  |_/_/ \_\_|_\\___|_||_| \_/
+| (_) | |\/| |/ _ \|   / (__| __ |\ V / 
+\___/|_|  |_/_/ \_\_|_\\___|_||_| \_/  
       </div>
       <h1 class="login-title">OMARCHY <span class="accent-cyan">VM</span></h1>
-      <p class="login-subtitle">GCP Virtual Machine Control</p>
+      <p class="login-subtitle">GCP Virtual Machine Desktop & Control</p>
       <div class="login-divider"></div>
       <div class="login-fields">
         <label class="field-label" for="login-client-id">OAuth Client ID</label>
         <input type="text" id="login-client-id" class="field-input" placeholder="your-client-id.apps.googleusercontent.com" spellcheck="false">
-        <p class="field-hint">Create one at <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></p>
+        <p class="field-hint">Obtén uno en <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></p>
       </div>
       <button id="btn-google-login" class="btn-login" disabled>
         <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
@@ -43,44 +43,124 @@
         </svg>
         Sign in with Google
       </button>
-      <p class="login-footer">Requires Compute Engine API access</p>
+      <div class="login-or-divider">
+        <span>O</span>
+      </div>
+      <button id="btn-demo-mode" class="btn-demo" title="Explorar la interfaz con datos simulados">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Entrar en Modo Prueba (Demo)
+      </button>
+      <p class="login-footer">Requiere acceso a Google Compute Engine API</p>
     </div>
   </div>
 
-  <!-- ===== MAIN APP ===== -->
+  <!-- ===== MAIN DESKTOP ENVIRONMENT ===== -->
   <div id="app" class="app hidden">
-    <!-- Top Bar -->
+    <!-- Top Bar (Estilo Omarchy / Waybar) -->
     <header id="top-bar" class="top-bar">
+      <!-- Left: Logo & Workspaces -->
       <div class="top-bar-left">
-        <button id="btn-menu" class="top-bar-btn" title="Menu">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-        <span class="top-bar-title">OMARCHY <span class="accent-cyan">VM</span></span>
+        <div class="menu-container">
+          <button id="btn-menu" class="top-bar-btn" title="Menú Principal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+
+          <!-- Quick Dropdown Menu -->
+          <div id="quick-menu" class="quick-menu hidden">
+            <div class="menu-section-title">VENTANAS DE ESCRITORIO</div>
+            <button class="menu-item" data-action="open-files">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span>Explorador de Archivos</span>
+            </button>
+            <button class="menu-item" data-action="open-logs">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              <span>Terminal de Logs</span>
+            </button>
+            <button class="menu-item" data-action="toggle-drawer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Panel vm-control</span>
+              <span class="menu-shortcut">Ctrl+S</span>
+            </button>
+
+            <div class="menu-divider"></div>
+            <div class="menu-section-title">SISTEMA</div>
+            <button class="menu-item" data-action="settings">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span>Configuración</span>
+              <span class="menu-shortcut">Ctrl+,</span>
+            </button>
+            <button class="menu-item" data-action="gcp-console">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              <span>Consola GCP</span>
+            </button>
+
+            <div class="menu-divider"></div>
+            <button class="menu-item danger" data-action="logout">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <span>Cerrar Sesión</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Omarchy Desktop Workspaces -->
+        <div class="workspaces">
+          <span class="workspace-dot"></span>
+          <span class="workspace-dot"></span>
+          <span class="workspace-dot active"></span>
+          <span class="workspace-dot"></span>
+          <span class="workspace-dot"></span>
+        </div>
       </div>
+
+      <!-- Center: Date / Clock -->
       <div class="top-bar-center">
-        <span id="top-bar-instance" class="top-bar-instance">--</span>
+        <span id="top-bar-clock" class="top-bar-clock">Tue 01:15 AM</span>
       </div>
+
+      <!-- Right: System Tray & VM Control Button -->
       <div class="top-bar-right">
-        <span id="top-bar-clock" class="top-bar-clock"></span>
-        <div id="top-bar-status-dot" class="status-dot stopped" title="VM Status"></div>
-        <button id="btn-settings" class="top-bar-btn" title="Settings (Ctrl+,)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <!-- Tray indicators -->
+        <div class="tray-icons">
+          <!-- Bluetooth -->
+          <svg class="tray-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>
+          <!-- Wifi -->
+          <svg class="tray-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+          <!-- Volume -->
+          <svg class="tray-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <!-- Battery -->
+          <svg class="tray-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2" ry="2"/><line x1="23" y1="13" x2="23" y2="11"/></svg>
+        </div>
+
+        <!-- VM Status Dot -->
+        <div id="top-bar-status-dot" class="status-dot stopped" title="Estado de la VM"></div>
+
+        <!-- VM Control Drawer Trigger Button (Top Right) -->
+        <button id="btn-toggle-drawer" class="btn-control-drawer" title="Abrir Panel de Control VM (Ctrl+S)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span id="top-bar-instance">my-server-01</span>
         </button>
+
+        <!-- Settings button -->
+        <button id="btn-settings" class="top-bar-btn" title="Configuración (Ctrl+,)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+
+        <!-- User -->
         <div id="user-info" class="user-info">
-          <span id="user-name" class="user-name"></span>
-          <button id="btn-logout" class="top-bar-btn" title="Logout">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span id="user-name" class="user-name">User</span>
+          <button id="btn-logout" class="top-bar-btn" title="Cerrar Sesión">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>
       </div>
     </header>
 
-    <!-- Settings Panel (slide-down overlay) -->
+    <!-- Settings Panel (Slide-down overlay) -->
     <div id="settings-panel" class="settings-panel hidden">
       <div class="settings-content">
         <h2 class="settings-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          Configuration
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Configuración de GCP y VM
         </h2>
         <div class="settings-grid">
           <div class="settings-field">
@@ -96,138 +176,321 @@
             <input type="text" id="setting-instance" class="field-input" placeholder="my-vm-instance" spellcheck="false">
           </div>
           <div class="settings-field">
-            <label class="field-label" for="setting-poll">Poll Interval (seconds)</label>
+            <label class="field-label" for="setting-poll">Intervalo de Polling (segundos)</label>
             <input type="number" id="setting-poll" class="field-input" value="5" min="2" max="60">
           </div>
         </div>
         <div class="settings-actions">
-          <button id="btn-save-settings" class="btn-primary">Save & Apply</button>
-          <button id="btn-close-settings" class="btn-secondary">Cancel</button>
+          <button id="btn-save-settings" class="btn-primary">Guardar y Aplicar</button>
+          <button id="btn-close-settings" class="btn-secondary">Cancelar</button>
         </div>
       </div>
     </div>
 
-    <!-- Main Content (Tiled Layout) -->
-    <main id="main-content" class="main-content">
-      <!-- Left Panel: VM Control -->
-      <section id="panel-control" class="panel panel-control">
-        <div class="panel-header">
-          <span class="panel-title">vm-control</span>
-          <span class="panel-badge" id="vm-status-badge">OFFLINE</span>
-        </div>
-        <div class="panel-body control-body">
-          <!-- Instance Name -->
-          <h2 id="vm-name" class="vm-name">--</h2>
+    <!-- ===== DESKTOP WORKSPACE AREA ===== -->
+    <main id="desktop-workspace" class="desktop-workspace">
 
-          <!-- Power Toggle -->
-          <div class="power-section">
-            <button id="btn-power" class="power-button" disabled title="Start/Stop VM (Ctrl+S)">
-              <svg class="power-icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="2" x2="12" y2="12"/>
-                <path d="M16.24 7.76a6 6 0 11-8.49-.01"/>
-              </svg>
-            </button>
-            <span id="power-label" class="power-label">OFFLINE</span>
+      <!-- ==============================================
+           VENTANA 1: EXPLORADOR DE ARCHIVOS (GNOME FILES)
+           ============================================== -->
+      <div id="win-file-manager" class="desktop-window win-files is-focused" style="top: 30px; left: 40px; width: 660px; height: 460px;">
+        <!-- Window Titlebar -->
+        <div class="window-header" data-drag-handle="true">
+          <div class="window-header-left">
+            <svg class="window-app-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span class="window-title">Archivos</span>
           </div>
 
-          <!-- Quick Actions -->
-          <div class="quick-actions">
-            <button id="btn-reset" class="btn-action" disabled title="Reset VM">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
-              Reset
+          <!-- GNOME-style Path / Search Bar -->
+          <div class="fm-pathbar-container">
+            <button id="fm-btn-back" class="fm-nav-btn" title="Atrás">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <button id="btn-suspend" class="btn-action" disabled title="Suspend VM">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-              Suspend
+            <button id="fm-btn-forward" class="fm-nav-btn" title="Adelante">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
-            <button id="btn-refresh" class="btn-action" title="Refresh (Ctrl+R)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
-              Refresh
-            </button>
+            <div class="fm-path-display">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span id="fm-current-path-label">/home/user/Documents</span>
+            </div>
           </div>
 
-          <!-- VM Details -->
-          <div id="vm-details" class="vm-details">
-            <div class="detail-row">
-              <span class="detail-label">PROJECT:</span>
-              <span class="detail-value" id="detail-project">--</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">ZONE:</span>
-              <span class="detail-value" id="detail-zone">--</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">MACHINE:</span>
-              <span class="detail-value" id="detail-machine">--</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">INT IP:</span>
-              <span class="detail-value" id="detail-internal-ip">--</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">EXT IP:</span>
-              <span class="detail-value" id="detail-external-ip">--</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">CPU:</span>
-              <span class="detail-value" id="detail-cpu">--</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">STARTED:</span>
-              <span class="detail-value" id="detail-started">--</span>
-            </div>
+          <!-- Window Controls -->
+          <div class="window-controls">
+            <button class="win-btn win-btn-min" data-win="win-file-manager" title="Minimizar">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <button class="win-btn win-btn-max" data-win="win-file-manager" title="Maximizar">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+            </button>
+            <button class="win-btn win-btn-close" data-win="win-file-manager" title="Cerrar">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
         </div>
-      </section>
 
-      <!-- Center Panel: Activity Log -->
-      <section id="panel-logs" class="panel panel-logs">
-        <div class="panel-header">
-          <span class="panel-title">activity-log</span>
-          <button id="btn-clear-log" class="panel-btn" title="Clear log">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-          </button>
+        <!-- Window Body: Sidebar + File Grid -->
+        <div class="window-body fm-body">
+          <!-- Sidebar -->
+          <aside class="fm-sidebar">
+            <button class="fm-side-item active" data-path="/home/user">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span>Carpeta personal</span>
+            </button>
+            <button class="fm-side-item" data-path="/home/user/Documents">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span>Documentos</span>
+            </button>
+            <button class="fm-side-item" data-path="/home/user/Work">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              <span>Trabajo</span>
+            </button>
+            <button class="fm-side-item" data-path="/home/user/Downloads">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Descargas</span>
+            </button>
+            <button class="fm-side-item" data-path="/home/user/Pictures">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Imágenes</span>
+            </button>
+            <div class="fm-side-divider"></div>
+            <button class="fm-side-item" data-path="recent">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>Recientes</span>
+            </button>
+            <button class="fm-side-item" data-path="starred">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span>Destacados</span>
+            </button>
+            <button class="fm-side-item" data-path="network">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+              <span>Red</span>
+            </button>
+            <button class="fm-side-item" data-path="trash">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>Papelera</span>
+            </button>
+          </aside>
+
+          <!-- Main File Grid Area -->
+          <section class="fm-content-area">
+            <div id="fm-file-grid" class="fm-grid">
+              <!-- Rendered dynamically by app.js -->
+            </div>
+          </section>
         </div>
-        <div class="panel-body log-body" id="log-container">
+      </div>
+
+
+      <!-- ==============================================
+           VENTANA 2: TERMINAL / ACTIVITY LOG
+           ============================================== -->
+      <div id="win-activity-log" class="desktop-window win-terminal" style="bottom: 40px; right: 40px; width: 540px; height: 320px;">
+        <!-- Window Titlebar -->
+        <div class="window-header" data-drag-handle="true">
+          <div class="window-header-left">
+            <svg class="window-app-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <span class="window-title">activity-log</span>
+          </div>
+
+          <div class="window-controls">
+            <button id="btn-clear-log" class="win-btn" title="Limpiar Terminal">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+            <button class="win-btn win-btn-min" data-win="win-activity-log" title="Minimizar">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <button class="win-btn win-btn-max" data-win="win-activity-log" title="Maximizar">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+            </button>
+            <button class="win-btn win-btn-close" data-win="win-activity-log" title="Cerrar">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Terminal Output Body -->
+        <div class="window-body terminal-body" id="log-container">
           <div class="log-welcome">
-            <span class="log-line"><span class="log-time">[--:--:--]</span> <span class="log-msg accent-cyan">OMARCHY VM initialized</span></span>
-            <span class="log-line"><span class="log-time">[--:--:--]</span> <span class="log-msg">Configure settings to connect...</span></span>
+            <span class="log-line"><span class="log-time">[--:--:--]</span> <span class="log-msg accent-cyan">OMARCHY VM Desktop inicializado</span></span>
+            <span class="log-line"><span class="log-time">[--:--:--]</span> <span class="log-msg">Escritorio gráfico y servicios conectados...</span></span>
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- Right Panel: Serial Port / Disks -->
-      <section id="panel-serial" class="panel panel-serial">
-        <div class="panel-header">
+
+      <!-- ==============================================
+           VENTANA 3: EDITOR / VISOR DE ARCHIVOS
+           ============================================== -->
+      <div id="win-file-editor" class="desktop-window win-editor hidden" style="top: 70px; left: 140px; width: 620px; height: 440px;">
+        <!-- Window Titlebar -->
+        <div class="window-header" data-drag-handle="true">
+          <div class="window-header-left">
+            <svg class="window-app-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span id="editor-filename" class="window-title">archivo.txt</span>
+            <span id="editor-save-indicator" class="editor-badge">Guardado</span>
+          </div>
+
+          <div class="window-controls">
+            <button id="btn-editor-save" class="editor-btn-save" title="Guardar Cambios (Ctrl+S)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Guardar
+            </button>
+            <button class="win-btn win-btn-close" data-win="win-file-editor" title="Cerrar Editor">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Editor Body -->
+        <div class="window-body editor-body">
+          <div class="editor-linenumbers" id="editor-linenumbers">1</div>
+          <textarea id="editor-textarea" class="editor-textarea" spellcheck="false" placeholder="Escribe aquí..."></textarea>
+        </div>
+      </div>
+
+    </main>
+
+
+    <!-- ==============================================
+         PANEL LATERAL: VM CONTROL (SLIDE-OUT DRAWER)
+         ============================================== -->
+    <div id="drawer-backdrop" class="drawer-backdrop hidden"></div>
+    <aside id="vm-control-drawer" class="vm-control-drawer">
+      <!-- Drawer Header -->
+      <div class="drawer-header">
+        <div class="drawer-title-box">
+          <span class="drawer-title">vm-control</span>
+          <span id="vm-status-badge" class="panel-badge offline">OFFLINE</span>
+        </div>
+        <button id="btn-close-drawer" class="top-bar-btn" title="Cerrar Panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Drawer Content Body -->
+      <div class="drawer-body">
+        <!-- Instance Title -->
+        <div class="vm-identity">
+          <span class="vm-instance-tag">Instance:</span>
+          <h2 id="vm-name" class="vm-name">my-server-01</h2>
+        </div>
+
+        <!-- ASCII Status Banner -->
+        <div class="ascii-status-container">
+          <pre id="vm-ascii-banner" class="vm-ascii-banner">
+ ____  _   _ _   _ _   _ ___ _   _  ____ 
+|  _ \| | | | \ | | \ | |_ _| \ | |/ ___|
+| |_) | | | |  \| |  \| || ||  \| | |  _ 
+|  _ <| |_| | |\  | |\  || || |\  | |_| |
+|_| \_\\___/|_| \_|_| \_|___|_| \_|\____|
+          </pre>
+        </div>
+
+        <!-- Quick Text Actions (Concept E style) -->
+        <div class="text-actions-bar">
+          <button id="btn-action-start" class="btn-text-action act-start" title="Start VM">[start]</button>
+          <button id="btn-action-stop" class="btn-text-action act-stop" title="Stop VM">[stop]</button>
+          <button id="btn-action-reset" class="btn-text-action act-reset" title="Reset VM">[reset]</button>
+          <button id="btn-action-suspend" class="btn-text-action act-suspend" title="Suspend VM">[suspend]</button>
+        </div>
+
+        <!-- Power Button Visual Widget -->
+        <div class="drawer-power-section">
+          <button id="btn-power" class="power-button" disabled title="Alternar Encendido/Apagado">
+            <svg class="power-icon" viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="2" x2="12" y2="12"/>
+              <path d="M16.24 7.76a6 6 0 11-8.49-.01"/>
+            </svg>
+          </button>
+          <span id="power-label" class="power-label">OFFLINE</span>
+        </div>
+
+        <!-- VM Detailed Specs -->
+        <div class="drawer-details">
+          <div class="detail-row">
+            <span class="detail-label">PROJECT:</span>
+            <span class="detail-value" id="detail-project">my-project</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">ZONE:</span>
+            <span class="detail-value" id="detail-zone">us-central1-a</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">MACHINE:</span>
+            <span class="detail-value" id="detail-machine">e2-medium</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">INT IP:</span>
+            <span class="detail-value accent-cyan" id="detail-internal-ip">10.128.0.45</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">EXT IP:</span>
+            <span class="detail-value" id="detail-external-ip">35.224.112.89</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">CPU:</span>
+            <span class="detail-value" id="detail-cpu">Intel Broadwell</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">STARTED:</span>
+            <span class="detail-value" id="detail-started">--</span>
+          </div>
+        </div>
+
+        <!-- Tabs: Disks / Network / Serial -->
+        <div class="drawer-tabs-section">
           <div class="panel-tabs">
             <button class="panel-tab active" data-tab="serial">serial-output</button>
             <button class="panel-tab" data-tab="disks">disks</button>
             <button class="panel-tab" data-tab="network">network</button>
           </div>
-          <button id="btn-refresh-serial" class="panel-btn" title="Refresh">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
-          </button>
-        </div>
-        <div class="panel-body serial-body">
-          <!-- Serial Output Tab -->
-          <div id="tab-serial" class="tab-content active">
-            <pre id="serial-output" class="serial-output">Waiting for connection...</pre>
-          </div>
-          <!-- Disks Tab -->
-          <div id="tab-disks" class="tab-content">
-            <div id="disks-list" class="info-list">
-              <p class="info-empty">No disk data available</p>
+          <div class="drawer-tab-content">
+            <!-- Serial Output Tab -->
+            <div id="tab-serial" class="tab-content active">
+              <pre id="serial-output" class="serial-output">Esperando conexión...</pre>
             </div>
-          </div>
-          <!-- Network Tab -->
-          <div id="tab-network" class="tab-content">
-            <div id="network-list" class="info-list">
-              <p class="info-empty">No network data available</p>
+            <!-- Disks Tab -->
+            <div id="tab-disks" class="tab-content">
+              <div id="disks-list" class="info-list"></div>
+            </div>
+            <!-- Network Tab -->
+            <div id="tab-network" class="tab-content">
+              <div id="network-list" class="info-list"></div>
             </div>
           </div>
         </div>
-      </section>
-    </main>
+
+      </div>
+    </aside>
+
+
+    <!-- ==============================================
+         MODAL DE CONFIRMACIÓN
+         ============================================== -->
+    <div id="modal-confirm" class="modal-backdrop hidden">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div id="modal-icon-badge" class="modal-icon-badge warning">
+            <svg id="modal-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <h3 id="modal-title" class="modal-title">Confirmar Acción</h3>
+        </div>
+        <p id="modal-message" class="modal-message">¿Estás seguro de continuar?</p>
+        <div class="modal-footer">
+          <button id="btn-modal-cancel" class="btn-secondary">Cancelar</button>
+          <button id="btn-modal-action" class="btn-modal-confirm">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden buttons for programmatic hooks -->
+    <div style="display: none;">
+      <button id="btn-reset"></button>
+      <button id="btn-suspend"></button>
+      <button id="btn-refresh"></button>
+      <button id="btn-refresh-serial"></button>
+    </div>
 
     <!-- Bottom Status Bar -->
     <footer id="bottom-bar" class="bottom-bar">
@@ -240,7 +503,7 @@
       <div class="bottom-bar-right">
         <span class="bottom-item" id="poll-indicator">Poll: 5s</span>
         <span class="bottom-item" id="last-update">Last: --</span>
-        <span class="bottom-item shortcuts-hint">Ctrl+S power | Ctrl+R refresh | Ctrl+, settings</span>
+        <span class="bottom-item shortcuts-hint">Ctrl+S control | Ctrl+R refresh | Ctrl+, settings</span>
       </div>
     </footer>
   </div>
