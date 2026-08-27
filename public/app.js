@@ -329,6 +329,85 @@
           win.classList.toggle('is-maximized');
         });
       }
+
+      // Attach 8-direction resize handles
+      const directions = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+      directions.forEach((dir) => {
+        const handle = document.createElement('div');
+        handle.className = `win-resize-handle win-resize-${dir}`;
+        handle.dataset.dir = dir;
+        win.appendChild(handle);
+
+        handle.addEventListener('mousedown', (e) => {
+          if (win.classList.contains('is-maximized')) return;
+          e.stopPropagation();
+          e.preventDefault();
+          bringWindowToFront(win);
+
+          const startX = e.clientX;
+          const startY = e.clientY;
+          const rect = win.getBoundingClientRect();
+          const startWidth = rect.width;
+          const startHeight = rect.height;
+          const startLeft = rect.left;
+          const startTop = rect.top;
+
+          const minWidth = 300;
+          const minHeight = 200;
+
+          function onResize(ev) {
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+            let newLeft = startLeft;
+            let newTop = startTop;
+
+            if (dir.includes('e')) {
+              newWidth = Math.max(minWidth, startWidth + dx);
+            }
+            if (dir.includes('s')) {
+              newHeight = Math.max(minHeight, startHeight + dy);
+            }
+            if (dir.includes('w')) {
+              const possibleWidth = startWidth - dx;
+              if (possibleWidth >= minWidth) {
+                newWidth = possibleWidth;
+                newLeft = startLeft + dx;
+              } else {
+                newWidth = minWidth;
+                newLeft = startLeft + (startWidth - minWidth);
+              }
+            }
+            if (dir.includes('n')) {
+              const possibleHeight = startHeight - dy;
+              if (possibleHeight >= minHeight) {
+                newHeight = possibleHeight;
+                newTop = Math.max(36, startTop + dy);
+              } else {
+                newHeight = minHeight;
+                newTop = startTop + (startHeight - minHeight);
+              }
+            }
+
+            win.style.width = `${newWidth}px`;
+            win.style.height = `${newHeight}px`;
+            win.style.left = `${newLeft}px`;
+            win.style.top = `${newTop}px`;
+            win.style.right = 'auto';
+            win.style.bottom = 'auto';
+          }
+
+          function onStopResize() {
+            document.removeEventListener('mousemove', onResize);
+            document.removeEventListener('mouseup', onStopResize);
+          }
+
+          document.addEventListener('mousemove', onResize);
+          document.addEventListener('mouseup', onStopResize);
+        });
+      });
     });
   }
 
