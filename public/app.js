@@ -1,6 +1,6 @@
 /* =========================================================
-   OMARCHY VM - Desktop Environment Client Application
-   Window Manager + GNOME Files + Code Editor + VM Control Drawer
+   OMARCHY VM - Cloud Desktop Environment Client Application
+   Window Manager + Dock + Terminal + Docker + Git + VFS + Editor
    ========================================================= */
 
 (function () {
@@ -35,6 +35,14 @@
     historyIndex: 0,
     currentOpenFile: null,
     isEditorDirty: false,
+
+    // Terminal History
+    commandHistory: [],
+    historyPos: -1,
+
+    // Auto-Stop Timer
+    autoStopSecondsLeft: 0,
+    autoStopInterval: null,
   };
 
   // Virtual File System (Local Cache / Demo Data)
@@ -108,9 +116,25 @@
     '/home/user/Documents/setup.sh': `#!/usr/bin/env bash\nset -euo pipefail\n\necho "==> Setting up Omarchy VM Environment..."\nsudo pacman -Sy --noconfirm neovim tmux htop fastfetch\nsystemctl enable --now sshd\necho "==> Setup completed successfully."`,
     '/home/user/Documents/server.log': `[2026-08-26 23:20:01] INFO: daemon initialized\n[2026-08-26 23:20:05] INFO: network interface nic0 configured (10.128.0.45)\n[2026-08-26 23:22:15] INFO: RPC client connected from frontend\n[2026-08-26 23:25:30] STATUS: all systems operational`,
     '/home/user/Work/cloud-functions.py': `import functions_framework\n\n@functions_framework.http\ndef handle_vm_event(request):\n    request_json = request.get_json(silent=True)\n    print(f"Received VM event: {request_json}")\n    return {"status": "success", "processed": True}`,
-    '/home/user/Work/docker-compose.yml': `version: '3.8'\nservices:\n  app:\n    image: node:22-alpine\n    working_dir: /app\n    volumes:\n      - .:/app\n    ports:\n      - "3000:3000"\n    environment:\n      - NODE_ENV=production\n    command: npm start`,
+    '/home/user/Work/docker-compose.yml': `version: '3.8'\nservices:\n  app:\n    image: node:22-alpine\n    working_dir: /app\n    volumes:\n      - .:/app\n    ports:\n      - "3000:3000"\n    environment:\n      - NODE_ENV=production\n    command: npm start\n  db:\n    image: postgres:16-alpine\n    environment:\n      POSTGRES_PASSWORD: secret\n    ports:\n      - "5432:5432"`,
     '/home/user/Work/database.sql': `CREATE TABLE IF NOT EXISTS vm_audit_logs (\n  id SERIAL PRIMARY KEY,\n  instance_name VARCHAR(64) NOT NULL,\n  action VARCHAR(32) NOT NULL,\n  user_email VARCHAR(128),\n  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);`,
   };
+
+  // Mock Docker Data
+  const dockerContainers = [
+    { id: 'c1', name: 'omarchy-backend', image: 'node:22-alpine', status: 'running', ports: '3000:3000', memory: '48 MB' },
+    { id: 'c2', name: 'postgres-db', image: 'postgres:16-alpine', status: 'running', ports: '5432:5432', memory: '32 MB' },
+    { id: 'c3', name: 'redis-cache', image: 'redis:7.2-alpine', status: 'running', ports: '6379:6379', memory: '14 MB' },
+    { id: 'c4', name: 'nginx-proxy', image: 'nginx:alpine', status: 'stopped', ports: '80:80', memory: '--' },
+  ];
+
+  // Mock Git Commits Data
+  const gitCommits = [
+    { hash: 'e8f1a2c', msg: 'feat(desktop): add macOS dock and interactive terminal subtabs', branch: 'main', author: 'camfs', date: 'Just now' },
+    { hash: 'a4b901d', msg: 'feat(explorer): implement 8-direction window resizing and quick search', branch: 'main', author: 'camfs', date: '20 min ago' },
+    { hash: '7c82e0f', msg: 'test: achieve 84% branch coverage and 35 passing tests', branch: 'main', author: 'camfs', date: '1 hour ago' },
+    { hash: '3e15b82', msg: 'feat: add modular backend controllers and security middlewares', branch: 'main', author: 'camfs', date: '3 hours ago' },
+  ];
 
 
   // ===========================
@@ -130,7 +154,7 @@
     app: $('#app'),
     desktopWorkspace: $('#desktop-workspace'),
 
-    // Top Bar
+    // Top Bar & Metrics
     btnMenu: $('#btn-menu'),
     quickMenu: $('#quick-menu'),
     topBarClock: $('#top-bar-clock'),
@@ -141,16 +165,38 @@
     userName: $('#user-name'),
     btnLogout: $('#btn-logout'),
 
+    metricCpuVal: $('#metric-cpu-val'),
+    metricCpuFill: $('#metric-cpu-fill'),
+    metricRamVal: $('#metric-ram-val'),
+    metricRamFill: $('#metric-ram-fill'),
+    metricDiskVal: $('#metric-disk-val'),
+    btnAutoStopTimer: $('#btn-autostop-timer'),
+    autoStopTimerLabel: $('#autostop-timer-label'),
+
     // Floating Windows
     winFileManager: $('#win-file-manager'),
     winActivityLog: $('#win-activity-log'),
     winFileEditor: $('#win-file-editor'),
+    winDocker: $('#win-docker'),
+    winGitGraph: $('#win-git-graph'),
+
+    // Dock
+    desktopDock: $('#desktop-dock'),
+    dockBtnFiles: $('#dock-btn-files'),
+    dockBtnTerminal: $('#dock-btn-terminal'),
+    dockBtnEditor: $('#dock-btn-editor'),
+    dockBtnDocker: $('#dock-btn-docker'),
+    dockBtnGit: $('#dock-btn-git'),
+    dockBtnDrawer: $('#dock-btn-drawer'),
 
     // File Manager Components
     fmCurrentPathLabel: $('#fm-current-path-label'),
     fmFileGrid: $('#fm-file-grid'),
     fmBtnBack: $('#fm-btn-back'),
     fmBtnForward: $('#fm-btn-forward'),
+    fmBtnQuickFind: $('#fm-btn-quick-find'),
+    fmDropZone: $('#fm-drop-zone'),
+    fmDragOverlay: $('#fm-drag-overlay'),
 
     // Editor Components
     editorFilename: $('#editor-filename'),
@@ -158,10 +204,16 @@
     btnEditorSave: $('#btn-editor-save'),
     editorTextarea: $('#editor-textarea'),
     editorLinenumbers: $('#editor-linenumbers'),
+    editorModeTabs: $('#editor-mode-tabs'),
+    editorEditView: $('#editor-edit-view'),
+    editorPreviewView: $('#editor-preview-view'),
 
     // Terminal / Log
     logContainer: $('#log-container'),
     btnClearLog: $('#btn-clear-log'),
+    interactiveTermContainer: $('#interactive-term-container'),
+    termOutput: $('#term-output'),
+    termInput: $('#term-input'),
 
     // Lateral Drawer (vm-control)
     vmControlDrawer: $('#vm-control-drawer'),
@@ -191,6 +243,25 @@
     disksList: $('#disks-list'),
     networkList: $('#network-list'),
 
+    // Docker & Git Lists
+    dockerContainerList: $('#docker-container-list'),
+    gitGraphContainer: $('#git-graph-container'),
+
+    // Modals
+    modalQuickOpen: $('#modal-quick-open'),
+    quickFinderInput: $('#quick-finder-input'),
+    quickFinderResults: $('#quick-finder-results'),
+
+    modalTimer: $('#modal-timer'),
+    btnTimerClose: $('#btn-timer-close'),
+
+    modalConfirm: $('#modal-confirm'),
+    modalTitle: $('#modal-title'),
+    modalMessage: $('#modal-message'),
+    modalIconBadge: $('#modal-icon-badge'),
+    btnModalCancel: $('#btn-modal-cancel'),
+    btnModalAction: $('#btn-modal-action'),
+
     // Settings
     settingsPanel: $('#settings-panel'),
     settingProject: $('#setting-project'),
@@ -199,19 +270,6 @@
     settingPoll: $('#setting-poll'),
     btnSaveSettings: $('#btn-save-settings'),
     btnCloseSettings: $('#btn-close-settings'),
-
-    // Confirmation Modal
-    modalConfirm: $('#modal-confirm'),
-    modalTitle: $('#modal-title'),
-    modalMessage: $('#modal-message'),
-    modalIconBadge: $('#modal-icon-badge'),
-    btnModalCancel: $('#btn-modal-cancel'),
-    btnModalAction: $('#btn-modal-action'),
-
-    // Bottom Bar
-    connectionStatus: $('#connection-status'),
-    pollIndicator: $('#poll-indicator'),
-    lastUpdate: $('#last-update'),
   };
 
 
@@ -253,9 +311,31 @@
 
 
   // ===========================
-  // WINDOW MANAGER (DRAG / FOCUS / MIN / MAX)
+  // WINDOW MANAGER & DOCK INTEGRATION
   // ===========================
   function initWindowManager() {
+    // Global Delegated Handler for Window Buttons (Min, Max, Close)
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.win-btn');
+      if (!btn) return;
+
+      const win = btn.closest('.desktop-window') || document.getElementById(btn.dataset.win);
+      if (!win) return;
+
+      e.stopPropagation();
+      e.preventDefault();
+
+      if (btn.classList.contains('win-btn-close')) {
+        win.classList.add('hidden');
+        updateDockStatus();
+      } else if (btn.classList.contains('win-btn-min')) {
+        win.classList.add('is-minimized');
+        updateDockStatus();
+      } else if (btn.classList.contains('win-btn-max')) {
+        win.classList.toggle('is-maximized');
+      }
+    });
+
     $$('.desktop-window').forEach((win) => {
       // Bring to front on click
       win.addEventListener('mousedown', () => bringWindowToFront(win));
@@ -263,12 +343,18 @@
       const header = win.querySelector('.window-header');
       if (!header) return;
 
+      // Double-click header to maximize / restore
+      header.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.window-controls') || e.target.closest('.win-subtabs') || e.target.closest('input') || e.target.closest('button')) return;
+        win.classList.toggle('is-maximized');
+      });
+
       // Dragging logic
       let isDragging = false;
       let startX, startY, initialLeft, initialTop;
 
       header.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.window-controls') || e.target.closest('input') || e.target.closest('button')) return;
+        if (e.target.closest('.window-controls') || e.target.closest('.win-subtabs') || e.target.closest('input') || e.target.closest('button')) return;
         if (win.classList.contains('is-maximized')) return;
 
         isDragging = true;
@@ -303,31 +389,6 @@
         isDragging = false;
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
-      }
-
-      // Window Control Buttons
-      const btnClose = win.querySelector('.win-btn-close');
-      if (btnClose) {
-        btnClose.addEventListener('click', (e) => {
-          e.stopPropagation();
-          win.classList.add('hidden');
-        });
-      }
-
-      const btnMin = win.querySelector('.win-btn-min');
-      if (btnMin) {
-        btnMin.addEventListener('click', (e) => {
-          e.stopPropagation();
-          win.classList.add('is-minimized');
-        });
-      }
-
-      const btnMax = win.querySelector('.win-btn-max');
-      if (btnMax) {
-        btnMax.addEventListener('click', (e) => {
-          e.stopPropagation();
-          win.classList.toggle('is-maximized');
-        });
       }
 
       // Attach 8-direction resize handles
@@ -421,11 +482,289 @@
   function openWindow(win) {
     win.classList.remove('hidden', 'is-minimized');
     bringWindowToFront(win);
+    updateDockStatus();
+  }
+
+  function toggleWindow(win) {
+    if (win.classList.contains('hidden') || win.classList.contains('is-minimized')) {
+      openWindow(win);
+    } else {
+      if (win.classList.contains('is-focused')) {
+        win.classList.add('is-minimized');
+        updateDockStatus();
+      } else {
+        bringWindowToFront(win);
+      }
+    }
+  }
+
+  function initDock() {
+    dom.dockBtnFiles.addEventListener('click', () => toggleWindow(dom.winFileManager));
+    dom.dockBtnTerminal.addEventListener('click', () => toggleWindow(dom.winActivityLog));
+    dom.dockBtnEditor.addEventListener('click', () => toggleWindow(dom.winFileEditor));
+    dom.dockBtnDocker.addEventListener('click', () => toggleWindow(dom.winDocker));
+    dom.dockBtnGit.addEventListener('click', () => toggleWindow(dom.winGitGraph));
+    dom.dockBtnDrawer.addEventListener('click', toggleDrawer);
+
+    updateDockStatus();
+  }
+
+  function updateDockStatus() {
+    const map = [
+      { btn: dom.dockBtnFiles, win: dom.winFileManager },
+      { btn: dom.dockBtnTerminal, win: dom.winActivityLog },
+      { btn: dom.dockBtnEditor, win: dom.winFileEditor },
+      { btn: dom.dockBtnDocker, win: dom.winDocker },
+      { btn: dom.dockBtnGit, win: dom.winGitGraph },
+    ];
+
+    map.forEach(({ btn, win }) => {
+      const isClosed = win.classList.contains('hidden');
+      const isMinimized = win.classList.contains('is-minimized');
+      btn.classList.toggle('is-running', !isClosed);
+      btn.classList.toggle('active', !isClosed && !isMinimized);
+    });
   }
 
 
   // ===========================
-  // EXPLORADOR DE ARCHIVOS (GNOME FILES)
+  // INTERACTIVE TERMINAL & SUBTABS
+  // ===========================
+  function initTerminalSubtabs() {
+    $$('.win-subtab').forEach((tab) => {
+      tab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const target = tab.dataset.subtab;
+        $$('.win-subtab').forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        if (target === 'logs') {
+          dom.logContainer.classList.add('active');
+          dom.interactiveTermContainer.classList.remove('active');
+        } else {
+          dom.logContainer.classList.remove('active');
+          dom.interactiveTermContainer.classList.add('active');
+          dom.termInput.focus();
+        }
+      });
+    });
+
+    // Interactive Terminal Input
+    dom.termInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const cmd = dom.termInput.value.trim();
+        if (cmd) {
+          state.commandHistory.push(cmd);
+          state.historyPos = state.commandHistory.length;
+          execTerminalCommand(cmd);
+        }
+        dom.termInput.value = '';
+      } else if (e.key === 'ArrowUp') {
+        if (state.historyPos > 0) {
+          state.historyPos -= 1;
+          dom.termInput.value = state.commandHistory[state.historyPos] || '';
+        }
+      } else if (e.key === 'ArrowDown') {
+        if (state.historyPos < state.commandHistory.length - 1) {
+          state.historyPos += 1;
+          dom.termInput.value = state.commandHistory[state.historyPos] || '';
+        } else {
+          state.historyPos = state.commandHistory.length;
+          dom.termInput.value = '';
+        }
+      }
+    });
+  }
+
+  function appendTermLine(text, className = '') {
+    const el = document.createElement('div');
+    el.className = `term-line ${className}`;
+    el.textContent = text;
+    dom.termOutput.appendChild(el);
+    dom.termOutput.scrollTop = dom.termOutput.scrollHeight;
+  }
+
+  function execTerminalCommand(cmd) {
+    appendTermLine(`user@my-server-01:~$ ${cmd}`, 'accent-cyan');
+    const [name, ...args] = cmd.split(/\s+/);
+
+    switch (name.toLowerCase()) {
+      case 'help':
+        appendTermLine('Comandos disponibles:');
+        appendTermLine('  fastfetch     - Mostrar información del sistema y specs');
+        appendTermLine('  git status    - Ver estado del repositorio Git');
+        appendTermLine('  docker ps     - Ver contenedores activos');
+        appendTermLine('  pnpm test     - Ejecutar suite de pruebas');
+        appendTermLine('  ls [dir]      - Listar archivos');
+        appendTermLine('  cat <archivo> - Ver contenido de archivo');
+        appendTermLine('  uptime        - Tiempo de actividad');
+        appendTermLine('  whoami        - Usuario activo');
+        appendTermLine('  clear         - Limpiar pantalla');
+        break;
+
+      case 'fastfetch':
+      case 'neofetch':
+        appendTermLine('  /\\       user@my-server-01');
+        appendTermLine(' /  \\      -----------------');
+        appendTermLine('/ /\\ \\     OS: Omarchy Linux (Arch-based)');
+        appendTermLine('\\/  \\/     Host: Google Compute Engine (e2-medium)');
+        appendTermLine('           Kernel: 6.6.137-omarchy-x86_64');
+        appendTermLine('           Uptime: 2 days, 14 hours, 12 mins');
+        appendTermLine('           Packages: 982 (pacman)');
+        appendTermLine('           Shell: bash 5.2.26');
+        appendTermLine('           CPU: Intel Broadwell (2 vCPUs) @ 2.20GHz');
+        appendTermLine('           Memory: 1420MiB / 4018MiB (35%)');
+        break;
+
+      case 'git':
+        if (args[0] === 'status') {
+          appendTermLine('On branch main');
+          appendTermLine('Your branch is up to date with \'origin/main\'.');
+          appendTermLine('Changes not staged for commit:');
+          appendTermLine('  modified:   public/app.js');
+          appendTermLine('  modified:   public/styles.css');
+          appendTermLine('  modified:   public/index.html');
+          appendTermLine('no changes added to commit (use "git add")');
+        } else if (args[0] === 'log') {
+          gitCommits.forEach((c) => {
+            appendTermLine(`* ${c.hash} - ${c.msg} (${c.author}, ${c.date})`);
+          });
+        } else {
+          appendTermLine(`git ${args.join(' ')}: ejecutado`);
+        }
+        break;
+
+      case 'docker':
+        if (args[0] === 'ps') {
+          appendTermLine('CONTAINER ID   IMAGE                STATUS          PORTS                    NAMES');
+          dockerContainers.forEach((d) => {
+            appendTermLine(`${d.id.padEnd(14)} ${d.image.padEnd(20)} ${d.status.padEnd(15)} ${d.ports.padEnd(24)} ${d.name}`);
+          });
+        } else {
+          appendTermLine('Uso: docker ps');
+        }
+        break;
+
+      case 'pnpm':
+      case 'npm':
+        if (args[0] === 'test') {
+          appendTermLine('Running automated test suite...');
+          setTimeout(() => {
+            appendTermLine('✔ 35/35 tests passed (100%) [84.11% branch coverage]');
+            appendTermLine('Duration: 432ms');
+          }, 300);
+        } else {
+          appendTermLine(`pnpm ${args.join(' ')}: comando completado.`);
+        }
+        break;
+
+      case 'ls': {
+        const path = args[0] || state.currentPath;
+        const dir = vfs[path];
+        if (dir && dir.items) {
+          appendTermLine(dir.items.map((i) => i.name + (i.type === 'dir' ? '/' : '')).join('   '));
+        } else {
+          appendTermLine(`ls: cannot access '${path}': No such file or directory`);
+        }
+        break;
+      }
+
+      case 'cat': {
+        const file = args[0];
+        if (!file) {
+          appendTermLine('Uso: cat <archivo>');
+        } else {
+          const fullPath = file.startsWith('/') ? file : `${state.currentPath}/${file}`;
+          if (fileContents[fullPath]) {
+            appendTermLine(fileContents[fullPath]);
+          } else {
+            appendTermLine(`cat: ${file}: No such file`);
+          }
+        }
+        break;
+      }
+
+      case 'clear':
+        dom.termOutput.innerHTML = '';
+        break;
+
+      case 'whoami':
+        appendTermLine('user');
+        break;
+
+      case 'uptime':
+        appendTermLine(' 01:15:22 up 2 days, 14:12,  1 user,  load average: 0.18, 0.22, 0.15');
+        break;
+
+      default:
+        appendTermLine(`bash: ${name}: comando no encontrado. Escribe 'help' para ayuda.`);
+    }
+  }
+
+
+  // ===========================
+  // DOCKER & GIT GRAPH WINDOWS
+  // ===========================
+  function initDockerWindow() {
+    renderDockerList();
+  }
+
+  function renderDockerList() {
+    dom.dockerContainerList.innerHTML = dockerContainers.map((d) => `
+      <div class="docker-card">
+        <div class="docker-info">
+          <div class="docker-name-row">
+            <span class="docker-dot ${d.status}"></span>
+            <span class="docker-name">${escapeHtml(d.name)}</span>
+            <span class="docker-image">${escapeHtml(d.image)}</span>
+          </div>
+          <div class="docker-meta">Ports: ${escapeHtml(d.ports)} | Mem: ${escapeHtml(d.memory)}</div>
+        </div>
+        <div class="docker-actions">
+          <button class="docker-btn btn-docker-restart" data-id="${d.id}">Reiniciar</button>
+          <button class="docker-btn btn-docker-toggle" data-id="${d.id}">${d.status === 'running' ? 'Detener' : 'Iniciar'}</button>
+        </div>
+      </div>
+    `).join('');
+
+    $$('.btn-docker-restart').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const cont = dockerContainers.find((c) => c.id === id);
+        if (cont) {
+          log(`Docker: Reiniciando contenedor ${cont.name}...`, 'info');
+          setTimeout(() => log(`Docker: ${cont.name} reiniciado exitosamente`, 'success'), 800);
+        }
+      });
+    });
+
+    $$('.btn-docker-toggle').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const cont = dockerContainers.find((c) => c.id === id);
+        if (cont) {
+          cont.status = cont.status === 'running' ? 'stopped' : 'running';
+          log(`Docker: ${cont.name} estado cambiado a ${cont.status.toUpperCase()}`, 'warning');
+          renderDockerList();
+        }
+      });
+    });
+  }
+
+  function initGitWindow() {
+    dom.gitGraphContainer.innerHTML = gitCommits.map((c) => `
+      <div class="git-commit-row">
+        <div class="git-node-indicator"></div>
+        <span class="git-hash">${c.hash}</span>
+        <span class="git-msg">${escapeHtml(c.msg)}</span>
+        <span class="git-author">${c.author} · ${c.date}</span>
+      </div>
+    `).join('');
+  }
+
+
+  // ===========================
+  // EXPLORADOR DE ARCHIVOS & DRAG AND DROP
   // ===========================
   function initFileManager() {
     renderFileGrid(state.currentPath);
@@ -459,6 +798,48 @@
         navigateToFolder(state.history[state.historyIndex], false);
       }
     });
+
+    // Quick Find Trigger Button in Pathbar
+    dom.fmBtnQuickFind.addEventListener('click', openQuickFinder);
+
+    // Drag & Drop Handling for Uploads
+    dom.fmDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dom.fmDragOverlay.classList.remove('hidden');
+    });
+
+    dom.fmDropZone.addEventListener('dragleave', (e) => {
+      if (!dom.fmDropZone.contains(e.relatedTarget)) {
+        dom.fmDragOverlay.classList.add('hidden');
+      }
+    });
+
+    dom.fmDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dom.fmDragOverlay.classList.add('hidden');
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        Array.from(e.dataTransfer.files).forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const content = ev.target.result;
+            const fullPath = `${state.currentPath}/${file.name}`;
+
+            fileContents[fullPath] = content;
+            if (vfs[state.currentPath]) {
+              vfs[state.currentPath].items.push({
+                name: file.name,
+                type: 'file',
+                size: `${Math.max(1, Math.round(file.size / 1024))} KB`,
+              });
+            }
+            renderFileGrid(state.currentPath);
+            log(`Archivo subido a la VM: ${file.name} (${Math.round(file.size / 1024)} KB)`, 'success');
+          };
+          reader.readAsText(file);
+        });
+      }
+    });
   }
 
   function navigateToFolder(path, addToHistory = true) {
@@ -487,7 +868,6 @@
       itemEl.className = 'fm-item';
       itemEl.tabIndex = 0;
 
-      // Icon determination
       let iconHtml = '';
       if (item.type === 'dir') {
         iconHtml = `
@@ -523,13 +903,11 @@
         <span class="fm-item-size">${item.size || '--'}</span>
       `;
 
-      // Click to select
       itemEl.addEventListener('click', () => {
         $$('.fm-item').forEach((i) => i.classList.remove('selected'));
         itemEl.classList.add('selected');
       });
 
-      // Double Click
       itemEl.addEventListener('dblclick', () => {
         if (item.type === 'dir') {
           navigateToFolder(fullPath);
@@ -544,16 +922,37 @@
 
 
   // ===========================
-  // EDITOR / VISOR DE ARCHIVOS
+  // EDITOR / VISOR DE ARCHIVOS & MARKDOWN PREVIEW
   // ===========================
   function initFileEditor() {
     dom.btnEditorSave.addEventListener('click', saveActiveFile);
+
+    // Mode tabs (Edit vs. Preview)
+    $$('#editor-mode-tabs .win-subtab').forEach((tab) => {
+      tab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const mode = tab.dataset.editormode;
+        $$('#editor-mode-tabs .win-subtab').forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        if (mode === 'preview') {
+          updateMarkdownPreview();
+          dom.editorEditView.classList.add('hidden');
+          dom.editorPreviewView.classList.remove('hidden');
+        } else {
+          dom.editorEditView.classList.remove('hidden');
+          dom.editorPreviewView.classList.add('hidden');
+          dom.editorTextarea.focus();
+        }
+      });
+    });
 
     dom.editorTextarea.addEventListener('input', () => {
       state.isEditorDirty = true;
       dom.editorSaveIndicator.textContent = 'Modificado';
       dom.editorSaveIndicator.style.color = 'var(--yellow)';
       updateLineNumbers();
+      updateMarkdownPreview();
     });
 
     dom.editorTextarea.addEventListener('keydown', (e) => {
@@ -575,9 +974,89 @@
     const content = fileContents[filePath] || `# ${fileName}\n\nContenido de ejemplo...`;
     dom.editorTextarea.value = content;
     updateLineNumbers();
+    updateMarkdownPreview();
+
+    // If it's a markdown file (.md), start in preview mode by default
+    const isMd = fileName.toLowerCase().endsWith('.md');
+    const tabs = $$('#editor-mode-tabs .win-subtab');
+    if (tabs.length >= 2) {
+      tabs.forEach((t) => t.classList.remove('active'));
+      if (isMd) {
+        tabs[1].classList.add('active');
+        dom.editorEditView.classList.add('hidden');
+        dom.editorPreviewView.classList.remove('hidden');
+      } else {
+        tabs[0].classList.add('active');
+        dom.editorEditView.classList.remove('hidden');
+        dom.editorPreviewView.classList.add('hidden');
+      }
+    }
 
     openWindow(dom.winFileEditor);
     log(`Archivo abierto: ${filePath}`, 'info');
+  }
+
+  function updateMarkdownPreview() {
+    if (!dom.editorPreviewView) return;
+    const raw = dom.editorTextarea.value;
+    dom.editorPreviewView.innerHTML = parseMarkdown(raw);
+  }
+
+  function parseMarkdown(md) {
+    if (!md) return '<p style="color: var(--text-muted);">Documento vacío</p>';
+
+    let html = md;
+
+    // Escape raw HTML entities
+    html = html
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Fenced Code blocks
+    html = html.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_, lang, code) => {
+      return `<pre><code class="language-${lang}">${code.trim()}</code></pre>`;
+    });
+
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Headings
+    html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+    // Horizontal Rule
+    html = html.replace(/^---$/gim, '<hr>');
+
+    // Blockquotes
+    html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+
+    // Bold and Italic
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // Links [title](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+    // Unordered lists
+    html = html.replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>)/gims, (match) => `<ul>${match}</ul>`);
+    html = html.replace(/<\/ul>\s*<ul>/g, '');
+
+    // Paragraphs (double newlines)
+    const blocks = html.split(/\n{2,}/);
+    html = blocks.map((b) => {
+      const trimmed = b.trim();
+      if (!trimmed) return '';
+      if (/^<(h[1-4]|pre|ul|ol|blockquote|hr|table)/i.test(trimmed)) {
+        return trimmed;
+      }
+      return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+    }).join('\n');
+
+    return html;
   }
 
   function saveActiveFile() {
@@ -585,16 +1064,16 @@
     const content = dom.editorTextarea.value;
     fileContents[state.currentOpenFile] = content;
 
-    // Send to backend virtual file API if online
     fetch('/api/files/write', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path: state.currentOpenFile, content }),
-    }).catch(() => { /* local cache already updated */ });
+    }).catch(() => {});
 
     state.isEditorDirty = false;
     dom.editorSaveIndicator.textContent = 'Guardado';
     dom.editorSaveIndicator.style.color = 'var(--green)';
+    updateMarkdownPreview();
     log(`Cambios guardados con éxito en ${state.currentOpenFile}`, 'success');
   }
 
@@ -606,6 +1085,150 @@
 
 
   // ===========================
+  // QUICK FILE FINDER (CTRL+P)
+  // ===========================
+  function initQuickFinder() {
+    dom.quickFinderInput.addEventListener('input', () => {
+      const q = dom.quickFinderInput.value.toLowerCase().trim();
+      renderQuickFinderResults(q);
+    });
+
+    dom.quickFinderInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeQuickFinder();
+      } else if (e.key === 'Enter') {
+        const first = dom.quickFinderResults.querySelector('.qf-item');
+        if (first) first.click();
+      }
+    });
+
+    dom.modalQuickOpen.addEventListener('click', (e) => {
+      if (e.target === dom.modalQuickOpen) closeQuickFinder();
+    });
+  }
+
+  function openQuickFinder() {
+    dom.modalQuickOpen.classList.remove('hidden');
+    dom.quickFinderInput.value = '';
+    renderQuickFinderResults('');
+    dom.quickFinderInput.focus();
+  }
+
+  function closeQuickFinder() {
+    dom.modalQuickOpen.classList.add('hidden');
+  }
+
+  function renderQuickFinderResults(filter) {
+    const allFiles = Object.keys(fileContents).map((path) => ({
+      path,
+      name: path.split('/').pop(),
+    }));
+
+    const filtered = allFiles.filter((f) => f.name.toLowerCase().includes(filter) || f.path.toLowerCase().includes(filter));
+
+    if (filtered.length === 0) {
+      dom.quickFinderResults.innerHTML = '<div style="padding: 12px; color: var(--text-muted); font-size: 12px;">No se encontraron archivos</div>';
+      return;
+    }
+
+    dom.quickFinderResults.innerHTML = filtered.map((f) => `
+      <div class="qf-item" data-path="${f.path}" data-name="${f.name}">
+        <span class="qf-name">${escapeHtml(f.name)}</span>
+        <span class="qf-path">${escapeHtml(f.path)}</span>
+      </div>
+    `).join('');
+
+    $$('.qf-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const path = item.dataset.path;
+        const name = item.dataset.name;
+        closeQuickFinder();
+        openFileInEditor(path, name);
+      });
+    });
+  }
+
+
+  // ===========================
+  // AUTO-STOP TIMER
+  // ===========================
+  function initAutoStopTimer() {
+    dom.btnAutoStopTimer.addEventListener('click', () => {
+      dom.modalTimer.classList.remove('hidden');
+    });
+
+    dom.btnTimerClose.addEventListener('click', () => {
+      dom.modalTimer.classList.add('hidden');
+    });
+
+    $$('.btn-timer-opt').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mins = parseInt(btn.dataset.minutes, 10);
+        dom.modalTimer.classList.add('hidden');
+        setTimer(mins);
+      });
+    });
+  }
+
+  function setTimer(minutes) {
+    if (state.autoStopInterval) {
+      clearInterval(state.autoStopInterval);
+      state.autoStopInterval = null;
+    }
+
+    if (minutes === 0) {
+      state.autoStopSecondsLeft = 0;
+      dom.autoStopTimerLabel.textContent = 'Auto-Off: Off';
+      log('Temporizador de auto-apagado desactivado', 'info');
+      return;
+    }
+
+    state.autoStopSecondsLeft = minutes * 60;
+    log(`Temporizador de auto-apagado activado: ${minutes} minutos`, 'warning');
+
+    state.autoStopInterval = setInterval(() => {
+      state.autoStopSecondsLeft -= 1;
+
+      const m = Math.floor(state.autoStopSecondsLeft / 60);
+      const s = state.autoStopSecondsLeft % 60;
+      dom.autoStopTimerLabel.textContent = `Auto-Off: ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+      if (state.autoStopSecondsLeft <= 0) {
+        clearInterval(state.autoStopInterval);
+        state.autoStopInterval = null;
+        dom.autoStopTimerLabel.textContent = 'Auto-Off: Off';
+        log('Temporizador expirado: Deteniendo la VM automáticamente...', 'warning');
+        vmAction('stop');
+      }
+    }, 1000);
+  }
+
+
+  // ===========================
+  // LIVE METRICS TICKER
+  // ===========================
+  function updateLiveMetrics() {
+    if (state.vmStatus === 'RUNNING') {
+      const cpu = Math.floor(12 + Math.random() * 12);
+      const ramPercent = Math.floor(34 + Math.random() * 4);
+      dom.metricCpuVal.textContent = `${cpu}%`;
+      dom.metricCpuFill.style.width = `${cpu}%`;
+
+      dom.metricRamVal.textContent = `1.4/4G`;
+      dom.metricRamFill.style.width = `${ramPercent}%`;
+      dom.metricDiskVal.textContent = `22%`;
+    } else {
+      dom.metricCpuVal.textContent = `0%`;
+      dom.metricCpuFill.style.width = `0%`;
+      dom.metricRamVal.textContent = `0/4G`;
+      dom.metricRamFill.style.width = `0%`;
+      dom.metricDiskVal.textContent = `--`;
+    }
+  }
+  setInterval(updateLiveMetrics, 3000);
+
+
+  // ===========================
   // VM CONTROL DRAWER (SLIDE-OUT)
   // ===========================
   function initDrawer() {
@@ -613,7 +1236,6 @@
     dom.btnCloseDrawer.addEventListener('click', closeDrawer);
     dom.drawerBackdrop.addEventListener('click', closeDrawer);
 
-    // Text Actions
     dom.btnActionStart.addEventListener('click', () => {
       if (state.vmStatus !== 'RUNNING') togglePower();
     });
@@ -636,11 +1258,6 @@
   function closeDrawer() {
     dom.vmControlDrawer.classList.remove('open');
     dom.drawerBackdrop.classList.add('hidden');
-  }
-
-  function openDrawer() {
-    dom.vmControlDrawer.classList.add('open');
-    dom.drawerBackdrop.classList.remove('hidden');
   }
 
 
@@ -760,7 +1377,7 @@
     log('Entorno de escritorio Omarchy iniciado (Modo Simulación)', 'success');
     log('VM status: RUNNING (10.128.0.45)', 'success');
     log('Explorador de archivos conectado (/home/user/Documents)', 'info');
-    log('Todos los servicios listos para interactuar', 'info');
+    log('Métricas de CPU, RAM y Docker inicializadas', 'info');
   }
 
   function startGoogleLogin() {
@@ -840,6 +1457,7 @@
     dom.settingPoll.value = state.config.pollInterval;
 
     updateVmDisplay();
+    updateDockStatus();
     startPolling();
   }
 
@@ -913,8 +1531,6 @@
       const data = getDemoVmDetails();
       state.vmStatus = data.status;
       updateVmUI(data);
-      updateConnectionStatus(true);
-      dom.lastUpdate.textContent = `Last: ${new Date().toLocaleTimeString()}`;
       return;
     }
 
@@ -933,11 +1549,8 @@
       }
 
       updateVmUI(data);
-      updateConnectionStatus(true);
-      dom.lastUpdate.textContent = `Last: ${new Date().toLocaleTimeString()}`;
     } catch (err) {
       log(`Error al consultar VM: ${err.message}`, 'error');
-      updateConnectionStatus(false);
     }
   }
 
@@ -1077,7 +1690,6 @@
       dom.detailStarted.textContent = '--';
     }
 
-    // Disks
     if (data.disks && data.disks.length > 0) {
       dom.disksList.innerHTML = data.disks.map((d) => `
         <div class="info-card">
@@ -1089,7 +1701,6 @@
       `).join('');
     }
 
-    // Network
     if (data.networkInterfaces && data.networkInterfaces.length > 0) {
       dom.networkList.innerHTML = data.networkInterfaces.map((ni) => `
         <div class="info-card">
@@ -1102,19 +1713,8 @@
     }
   }
 
-  function updateConnectionStatus(connected) {
-    if (connected) {
-      dom.connectionStatus.className = 'connection-indicator connected';
-      dom.connectionStatus.innerHTML = '<span class="conn-dot"></span>CONNECTED';
-    } else {
-      dom.connectionStatus.className = 'connection-indicator';
-      dom.connectionStatus.innerHTML = '<span class="conn-dot"></span>DISCONNECTED';
-    }
-  }
-
   function startPolling() {
     state.isPolling = true;
-    dom.pollIndicator.textContent = `Poll: ${state.config.pollInterval}s`;
     fetchVmDetails();
     fetchSerialOutput();
     state.pollTimer = setInterval(fetchVmDetails, state.config.pollInterval * 1000);
@@ -1233,6 +1833,15 @@
           case 'open-logs':
             openWindow(dom.winActivityLog);
             break;
+          case 'open-docker':
+            openWindow(dom.winDocker);
+            break;
+          case 'open-git':
+            openWindow(dom.winGitGraph);
+            break;
+          case 'quick-finder':
+            openQuickFinder();
+            break;
           case 'toggle-drawer':
             toggleDrawer();
             break;
@@ -1289,14 +1898,15 @@
       log('Terminal limpia', 'info');
     });
 
-    // Keyboard Shortcuts
+    // Global Keyboard Shortcuts
     document.addEventListener('keydown', (e) => {
-      if (e.target.matches('input, textarea, select')) return;
-
-      if (e.ctrlKey && e.key === 's') {
+      if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        openQuickFinder();
+      } else if (e.ctrlKey && e.key.toLowerCase() === 's' && !e.target.matches('textarea, input')) {
         e.preventDefault();
         toggleDrawer();
-      } else if (e.ctrlKey && e.key === 'r') {
+      } else if (e.ctrlKey && e.key.toLowerCase() === 'r') {
         e.preventDefault();
         fetchVmDetails();
         log('Actualización manual de estado', 'info');
@@ -1315,12 +1925,18 @@
     loadConfig();
     initGoogleAuth();
     initWindowManager();
+    initDock();
+    initTerminalSubtabs();
+    initDockerWindow();
+    initGitWindow();
     initFileManager();
     initFileEditor();
+    initQuickFinder();
+    initAutoStopTimer();
     initDrawer();
     initTabs();
     bindEvents();
-    log('OMARCHY VM Desktop inicializado', 'info');
+    log('OMARCHY VM Desktop inicializado con utilidades avanzadas', 'info');
   }
 
   if (document.readyState === 'loading') {
